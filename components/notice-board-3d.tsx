@@ -1,18 +1,102 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
+import { collection, onSnapshot, doc, deleteDoc } from "firebase/firestore"
+import { db } from "@/lib/firebase"
+import { getAuth } from "firebase/auth"
+import NoticeControls from "./notice-controls"
 
-type Notice = { id: number; x: number; y: number; w: number; h: number; title: string; color?: string }
+interface Notice {
+  id: string
+  x: number
+  y: number
+  w: number
+  h: number
+  title: string
+  description?: string
+  color?: string
+}
 
-export default function NoticeBoard3D({
-  notices,
-  onNoticeClick,
-}: {
-  notices: Notice[]
-  onNoticeClick?: (id: number) => void
-}) {
+export default function NoticeBoard3D() {
+  const [notices, setNotices] = useState<Notice[]>([])
+  const [isEditing, setIsEditing] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const [loginError, setLoginError] = useState<string | null>(null)
   const containerRef = useRef<HTMLDivElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+
+  // Local admin credentials (client-side check per user request)
+  const ADMIN_EMAIL = "minorp584@gmail.com"
+  const ADMIN_PASSWORD = "123456789"
+
+  const onAdminLogin = (email: string, password: string) => {
+    if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+      setIsAdmin(true)
+      setLoginError(null)
+      return true
+    }
+    setLoginError("Invalid credentials")
+    return false
+  }
+
+  const onAdminLogout = () => {
+    setIsAdmin(false)
+  }
+
+  // If the app uses Firebase Auth elsewhere, allow an already-signed-in
+  // admin to be recognized automatically by checking the auth currentUser.
+  useEffect(() => {
+    try {
+      const auth = getAuth()
+      const u = auth.currentUser
+      if (u?.email === ADMIN_EMAIL) {
+        setIsAdmin(true)
+      }
+    } catch (e) {
+      // ignore if firebase not initialized or unavailable
+    }
+  }, [])
+
+  // Subscribe to notices collection
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, "notices"), (snapshot) => {
+      const noticesList = snapshot.docs.map(d => {
+        const data = d.data() as any
+        return {
+          id: d.id,
+          title: String(data.title ?? ""),
+          description: String(data.description ?? ""),
+          color: String(data.color ?? "#fffaf0"),
+          x: Number(data.x ?? 60),
+          y: Number(data.y ?? 60),
+          w: Number(data.w ?? 180),
+          h: Number(data.h ?? 120),
+        } as Notice
+      })
+      setNotices(noticesList)
+    })
+
+    return () => unsubscribe()
+  }, [])
+
+  // Keep a ref to the latest notices so canvas drawing and hit-testing
+  // (which run in a long-lived animation/event loop) can access updates
+  // without re-creating the whole canvas effect.
+  const noticesRef = useRef<Notice[]>([])
+
+  useEffect(() => {
+    noticesRef.current = notices
+  }, [notices])
+
+  const handleNoticeClick = async (id: string) => {
+    if (isEditing && isAdmin) {
+      try {
+        await deleteDoc(doc(db, "notices", id))
+      } catch (error) {
+        console.error("Error removing notice:", error)
+      }
+    }
+  }
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -42,8 +126,8 @@ export default function NoticeBoard3D({
     // do initial resize
     resize()
 
-    // use passed-in notices (positions are used for hit testing)
-    const boardNotices = notices
+  // use a ref to notices for hit-testing/drawing so the animation loop
+  // always sees the latest data without re-registering event listeners
 
     let mouseX = 0
     let mouseY = 0
@@ -67,8 +151,42 @@ export default function NoticeBoard3D({
         ctx.fillRect(i, 20, 1, h - 40)
       }
 
+      // helper: wrap text into lines for canvas and optionally clamp to maxLines
+      const wrapText = (text: string, maxWidth: number, font: string, maxLines?: number) => {
+        ctx.font = font
+        const words = String(text).split(" ")
+        const lines: string[] = []
+        let line = ""
+        for (let i = 0; i < words.length; i++) {
+          const testLine = line ? line + " " + words[i] : words[i]
+          const metrics = ctx.measureText(testLine)
+          if (metrics.width > maxWidth && line) {
+            lines.push(line)
+            line = words[i]
+            if (maxLines && lines.length >= maxLines) break
+          } else {
+            line = testLine
+          }
+        }
+        if (line && (!maxLines || lines.length < maxLines)) lines.push(line)
+
+        // If we have a maxLines and the text still overflows, truncate the last line with an ellipsis
+        if (maxLines && lines.length > 0 && lines.length >= maxLines) {
+          let last = lines[Math.min(lines.length - 1, maxLines - 1)]
+          // ensure last line fits, else trim
+          while (ctx.measureText(last + "…").width > maxWidth && last.length > 0) {
+            last = last.slice(0, -1)
+          }
+          lines[maxLines - 1] = last + (last.length ? "…" : "")
+          return lines.slice(0, maxLines)
+        }
+
+        return lines
+      }
+
       // Draw notices with slight parallax
-      notices.forEach((n, i) => {
+        const currentNotices = noticesRef.current
+        currentNotices.forEach((n, i) => {
 
     // calculate scaled positions/sizes
     const basePx = n.x
@@ -96,10 +214,60 @@ export default function NoticeBoard3D({
   ctx.arc(px + drawW / 2, py, 6 * Math.min(scaleX, scaleY), 0, Math.PI * 2)
         ctx.fill()
 
-        // Title text
-        ctx.fillStyle = "#1f2937"
-        ctx.font = `bold ${Math.max(12, 14 * Math.min(scaleX, scaleY))}px sans-serif`
-        ctx.fillText(n.title, px + 12 * scaleX, py + 24 * scaleY)
+        // Title text — truncate to fit width and add subtle shadow for contrast
+        ctx.save()
+        ctx.fillStyle = "#0f172a" // darker for best contrast
+        ctx.shadowColor = "rgba(0,0,0,0.18)"
+        ctx.shadowBlur = 2
+        const titleFontSize = Math.max(12, 14 * Math.min(scaleX, scaleY))
+        ctx.font = `bold ${titleFontSize}px sans-serif`
+        const titleMaxWidth = drawW - 24 * scaleX
+        let titleText = String(n.title ?? "")
+        // truncate title if too long
+        if (ctx.measureText(titleText).width > titleMaxWidth) {
+          while (titleText.length && ctx.measureText(titleText + "…").width > titleMaxWidth) {
+            titleText = titleText.slice(0, -1)
+          }
+          titleText = titleText + (titleText.length ? "…" : "")
+        }
+  // measure title to compute a safe bottom for the title (avoid overlap)
+  const titleMetrics = ctx.measureText(titleText)
+  // ascent/descent may be undefined in some browsers; fall back to heuristics
+  const titleAscent = titleMetrics.actualBoundingBoxAscent ?? titleFontSize * 0.75
+  const titleDescent = titleMetrics.actualBoundingBoxDescent ?? titleFontSize * 0.35
+  const titleHeight = titleAscent + titleDescent
+  const titleBaseline = py + 26 * scaleY
+  ctx.fillText(titleText, px + 12 * scaleX, titleBaseline)
+  // compute the bottom pixel of the drawn title relative to py
+  const titleBottom = titleBaseline + titleDescent
+        ctx.restore()
+
+        // Description (wrap inside the paper)
+        if (n.description) {
+          // Determine the vertical space available for description under the title
+          const descFontSize = Math.max(10, 12 * Math.min(scaleX, scaleY))
+          const descFont = `${descFontSize}px sans-serif`
+          const maxTextWidth = drawW - 24 * scaleX
+          // Reserve space: use measured title bottom plus padding so description starts below the title's drawn glyphs
+          // titleBottom is in canvas coordinates; subtract py to get offset inside the paper
+          const reservedTop = Math.max(28 * scaleY, (titleBottom - py) + 8 * scaleY, titleFontSize * 1.2)
+          const reservedBottom = 10 * scaleY
+          const availableH = drawH - reservedTop - reservedBottom
+          const lineHeight = descFontSize * 1.2
+          const maxLines = Math.max(1, Math.floor(availableH / lineHeight))
+
+          const lines = wrapText(n.description, maxTextWidth, descFont, maxLines)
+          ctx.save()
+          ctx.fillStyle = "#1f2937"
+          ctx.font = descFont
+          ctx.shadowColor = "rgba(0,0,0,0.08)"
+          ctx.shadowBlur = 1
+          const startY = py + reservedTop
+          for (let li = 0; li < lines.length; li++) {
+            ctx.fillText(lines[li], px + 12 * scaleX, startY + li * lineHeight)
+          }
+          ctx.restore()
+        }
       })
 
       // Frame
@@ -142,8 +310,9 @@ export default function NoticeBoard3D({
       const scaleX = w / BASE_W
       const scaleY = h / BASE_H
 
-      for (let i = 0; i < boardNotices.length; i++) {
-        const n = boardNotices[i]
+      const currentNotices2 = noticesRef.current
+      for (let i = 0; i < currentNotices2.length; i++) {
+        const n = currentNotices2[i]
         const basePx = n.x
         const basePy = n.y
         const baseWn = n.w
@@ -155,7 +324,7 @@ export default function NoticeBoard3D({
         const drawH = baseHn * scaleY
 
         if (cx >= px && cx <= px + drawW && cy >= py && cy <= py + drawH) {
-          onNoticeClick?.(n.id)
+          handleNoticeClick(n.id)
           break
         }
       }
@@ -180,8 +349,22 @@ export default function NoticeBoard3D({
   }, [])
 
   return (
-    <div ref={containerRef} className="w-full h-64 sm:h-80 md:h-[520px] bg-transparent rounded-lg overflow-hidden relative">
-      <canvas ref={canvasRef} className="w-full h-full block cursor-pointer" />
-    </div>
+    <>
+      <div ref={containerRef} className="w-full h-64 sm:h-80 md:h-[520px] bg-transparent rounded-lg overflow-hidden relative">
+        <canvas 
+          ref={canvasRef} 
+          className={`w-full h-full block ${isEditing ? "cursor-not-allowed" : "cursor-pointer"}`} 
+        />
+      </div>
+      <NoticeControls
+        onAddNotice={() => {}} // Handled by Firestore subscription
+        isEditing={isEditing}
+        setIsEditing={setIsEditing}
+        isAdmin={isAdmin}
+        onAdminLogin={onAdminLogin}
+        onAdminLogout={onAdminLogout}
+        loginError={loginError}
+      />
+    </>
   )
 }
