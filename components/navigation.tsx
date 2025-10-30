@@ -60,9 +60,8 @@ export default function Navigation() {
     <nav className="fixed top-0 w-full bg-white/95 backdrop-blur-md z-50 border-b border-border shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Logo */}
           <Link href="/" className="flex items-center gap-2 flex-shrink-0">
-            
+            <img src="/logoo.png" alt="GPS Srinagar Logo" className="h-10 w-10" />
             <span className="hidden sm:inline font-bold text-foreground text-sm md:text-base">GPS Srinagar</span>
           </Link>
 
@@ -72,16 +71,14 @@ export default function Navigation() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`px-3 py-2 text-sm font-medium transition-all duration-200 relative group ${
-                  isActive(item.href)
-                    ? "text-blue-600"
-                    : "text-foreground hover:text-blue-600"
-                }`}
+                className={`px-3 py-2 text-sm font-medium transition-all duration-200 relative group ${isActive(item.href)
+                  ? "text-blue-600"
+                  : "text-foreground hover:text-blue-600"
+                  }`}
               >
                 {item.label}
-                <div className={`absolute -bottom-[1px] left-0 w-full h-[3px] bg-blue-600 transform origin-left transition-transform duration-300 ${
-                  isActive(item.href) ? "scale-x-100" : "scale-x-0"
-                } group-hover:scale-x-100`} />
+                <div className={`absolute -bottom-[1px] left-0 w-full h-[3px] bg-blue-600 transform origin-left transition-transform duration-300 ${isActive(item.href) ? "scale-x-100" : "scale-x-0"
+                  } group-hover:scale-x-100`} />
               </Link>
             ))}
             {/* User icon */}
@@ -149,61 +146,59 @@ export default function Navigation() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`block px-3 py-2 text-sm font-medium transition-all duration-200 relative group ${
-                  isActive(item.href) ? "text-blue-600" : "text-foreground hover:text-blue-600"
-                }`}
+                className={`block px-3 py-2 text-sm font-medium transition-all duration-200 relative group ${isActive(item.href) ? "text-blue-600" : "text-foreground hover:text-blue-600"
+                  }`}
               >
                 {item.label}
-                <div className={`absolute -bottom-[1px] left-0 w-full h-[3px] bg-blue-600 transform origin-left transition-transform duration-300 ${
-                  isActive(item.href) ? "scale-x-100" : "scale-x-0"
-                } group-hover:scale-x-100`} />
+                <div className={`absolute -bottom-[1px] left-0 w-full h-[3px] bg-blue-600 transform origin-left transition-transform duration-300 ${isActive(item.href) ? "scale-x-100" : "scale-x-0"
+                  } group-hover:scale-x-100`} />
               </Link>
             ))}
             <div className="flex items-center gap-3 px-3">
-                <div ref={iconRef} className="relative">
-                  {userEmail ? (
-                    <button
-                      onClick={() => setMenuOpen((s) => !s)}
-                      aria-label="Account menu"
-                      className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-colors"
-                    >
-                      <User size={18} />
-                    </button>
-                  ) : (
-                    <Link href="/auth" aria-label="Open account" className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-colors">
-                      <User size={18} />
-                    </Link>
-                  )}
+              <div ref={iconRef} className="relative">
+                {userEmail ? (
+                  <button
+                    onClick={() => setMenuOpen((s) => !s)}
+                    aria-label="Account menu"
+                    className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-colors"
+                  >
+                    <User size={18} />
+                  </button>
+                ) : (
+                  <Link href="/auth" aria-label="Open account" className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-colors">
+                    <User size={18} />
+                  </Link>
+                )}
 
-                  {menuOpen && userEmail && (
-                    <div className="absolute right-0 mt-2 w-56 bg-white border border-border rounded-md shadow-lg p-3 z-50">
-                      <div className="text-sm text-neutral-700 truncate">{userEmail}</div>
-                      <div className="mt-3 flex gap-2">
-                        <button
-                          onClick={async () => {
-                            await firebaseSignOut(auth)
-                            setMenuOpen(false)
-                            router.push("/")
-                          }}
-                          className="flex-1 text-sm bg-red-600 text-white py-1 rounded-md"
-                        >
-                          Sign out
-                        </button>
-                        <Link href="/profile" className="flex-1 text-sm bg-gray-100 text-neutral-800 py-1 rounded-md text-center">
-                          Profile
-                        </Link>
-                      </div>
+                {menuOpen && userEmail && (
+                  <div className="absolute right-0 mt-2 w-56 bg-white border border-border rounded-md shadow-lg p-3 z-50">
+                    <div className="text-sm text-neutral-700 truncate">{userEmail}</div>
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        onClick={async () => {
+                          await firebaseSignOut(auth)
+                          setMenuOpen(false)
+                          router.push("/")
+                        }}
+                        className="flex-1 text-sm bg-red-600 text-white py-1 rounded-md"
+                      >
+                        Sign out
+                      </button>
+                      <Link href="/profile" className="flex-1 text-sm bg-gray-100 text-neutral-800 py-1 rounded-md text-center">
+                        Profile
+                      </Link>
                     </div>
-                  )}
-                </div>
-
-                <Link
-                  href="/auth"
-                  className="flex-1 text-center mt-2 px-3 py-2 bg-blue-600 text-white rounded-md text-sm font-medium"
-                >
-                  Sign Up
-                </Link>
+                  </div>
+                )}
               </div>
+
+              <Link
+                href="/auth"
+                className="flex-1 text-center mt-2 px-3 py-2 bg-blue-600 text-white rounded-md text-sm font-medium"
+              >
+                Sign Up
+              </Link>
+            </div>
           </div>
         )}
       </div>
