@@ -3,8 +3,9 @@ import { useEffect, useRef } from "react"
 import gsap from "gsap"
 import Link from "next/link"
 import { MapPin, Users, BookOpen, Zap } from "lucide-react"
-import CampusMap3D from "@/components/campus-map-3d"
+
 import Background3D from "@/components/3d-background"
+import CampusMap3D from "@/components/campus-map-3d"
 
 export default function CampusPage() {
   const titleRef = useRef(null)
@@ -76,10 +77,16 @@ export default function CampusPage() {
           <h2 className="text-4xl font-bold text-center mb-12 text-foreground">
             Interactive Campus <span className="text-color-primary">Map</span>
           </h2>
-          <div className="bg-white rounded-lg overflow-hidden shadow-lg h-96">
-            <CampusMap3D />
+        </div>
+
+        {/* Full-width map container to allow larger map visuals */}
+        <div className="w-full px-4">
+          <div className="max-w-[1400px] mx-auto">
+            <div className="bg-white rounded-lg overflow-hidden shadow-lg w-full h-[480px] md:h-[640px]">
+              <CampusMap3D />
+            </div>
+            <p className="text-center text-neutral mt-6">Explore our campus layout with interactive 3D visualization</p>
           </div>
-          <p className="text-center text-neutral mt-6">Explore our campus layout with interactive 3D visualization</p>
         </div>
       </section>
 

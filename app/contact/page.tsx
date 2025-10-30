@@ -252,7 +252,7 @@ export default function ContactPage() {
               height="100%"
               frameBorder="0"
               title="GPS Srinagar Location"
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3356.5555555555556!2d78.7666666!3d30.2166667!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzDCsDEzJzAwLjAiTiA3OMKwNDYnMDAuMCJF!5e0!3m2!1sen!2sin!4v1234567890"
+              src="https://www.google.com/maps?q=30.22209,78.77003&output=embed"
               allowFullScreen
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
