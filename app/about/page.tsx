@@ -6,41 +6,54 @@ import gsap from "gsap"
 import Link from "next/link"
 
 export default function AboutPage() {
-  const titleRef = useRef(null)
-  const contentRef = useRef(null)
-  const statsRef = useRef(null)
+  const titleRef = useRef<HTMLHeadingElement | null>(null)
+  const contentRef = useRef<HTMLElement | null>(null)
+  const statsRef = useRef<HTMLElement | null>(null)
+  const containerRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
-    const tl = gsap.timeline()
+    // Scope GSAP animations to this component and auto-clean inline styles on unmount
+    const ctx = gsap.context(() => {
+      const contentBlocks = contentRef.current
+        ? Array.from(contentRef.current.querySelectorAll<HTMLDivElement>(".content-block"))
+        : []
 
-    tl.from(titleRef.current, {
-      duration: 1,
-      opacity: 0,
-      y: 30,
-      ease: "power3.out",
-    }).from(
-      contentRef.current?.querySelectorAll(".content-block"),
-      {
-        duration: 0.8,
+      const tl = gsap.timeline()
+      tl.from(titleRef.current, {
+        duration: 1,
         opacity: 0,
-        y: 20,
-        stagger: 0.2,
+        y: 30,
         ease: "power3.out",
-      },
-      "-=0.5",
-    )
+        immediateRender: false,
+      }).from(
+        contentBlocks,
+        {
+          duration: 0.8,
+          opacity: 0,
+          y: 20,
+          stagger: 0.2,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        "-=0.5",
+      )
+    }, containerRef)
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            gsap.from(entry.target.querySelectorAll(".stat-card"), {
-              duration: 0.8,
-              opacity: 0,
-              scale: 0.9,
-              stagger: 0.1,
-              ease: "back.out",
-            })
+            // Add the observer-triggered tween into the GSAP context so it is reverted on unmount
+            ctx.add(() =>
+              gsap.from(entry.target.querySelectorAll(".stat-card"), {
+                duration: 0.8,
+                opacity: 0,
+                scale: 0.9,
+                stagger: 0.1,
+                ease: "back.out",
+                immediateRender: false,
+              }),
+            )
           }
         })
       },
@@ -51,11 +64,14 @@ export default function AboutPage() {
       observer.observe(statsRef.current)
     }
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      ctx.revert()
+    }
   }, [])
 
   return (
-    <main className="pt-20">
+    <main ref={containerRef} className="pt-20">
       {/* Hero Section */}
       <section className="py-20 px-4 text-black relative">
         <Background3D className="absolute inset-0 w-full h-full pointer-events-none" />

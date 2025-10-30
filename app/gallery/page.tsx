@@ -1,34 +1,43 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
 import gsap from "gsap"
+import Background3D from "@/components/3d-background"
 import { X } from "lucide-react"
 
 export default function GalleryPage() {
   const titleRef = useRef(null)
   const galleryRef = useRef(null)
   const [selectedImage, setSelectedImage] = useState<number | null>(null)
+  const containerRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
-    const tl = gsap.timeline()
+    // Scope animations to this component and revert on unmount
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline()
 
-    tl.from(titleRef.current, {
-      duration: 1,
-      opacity: 0,
-      y: 30,
-      ease: "power3.out",
-    })
+      tl.from(titleRef.current, {
+        duration: 1,
+        opacity: 0,
+        y: 30,
+        ease: "power3.out",
+        immediateRender: false,
+      })
+    }, containerRef)
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            gsap.from(entry.target.querySelectorAll(".gallery-item"), {
-              duration: 0.6,
-              opacity: 0,
-              scale: 0.9,
-              stagger: 0.08,
-              ease: "back.out",
-            })
+            ctx.add(() =>
+              gsap.from(entry.target.querySelectorAll(".gallery-item"), {
+                duration: 0.6,
+                opacity: 0,
+                scale: 0.9,
+                stagger: 0.08,
+                ease: "back.out",
+                immediateRender: false,
+              }),
+            )
           }
         })
       },
@@ -39,7 +48,10 @@ export default function GalleryPage() {
       observer.observe(galleryRef.current)
     }
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      ctx.revert()
+    }
   }, [])
 
   const galleryImages = [
@@ -124,10 +136,11 @@ export default function GalleryPage() {
     activeCategory === "All" ? galleryImages : galleryImages.filter((img) => img.category === activeCategory)
 
   return (
-    <main className="pt-20">
+    <main ref={containerRef} className="pt-20 opacity-100">
       {/* Hero Section */}
-      <section className="py-20 px-4 bg-gradient-to-r from-color-primary to-color-primary-light text-white">
-        <div className="max-w-7xl mx-auto">
+      <section className="py-20 px-4 bg-gradient-to-r from-color-primary to-color-primary-light text-white relative">
+        <Background3D className="absolute inset-0 w-full h-full opacity-50 pointer-events-none" />
+        <div className="max-w-7xl mx-auto relative z-10">
           <h1 ref={titleRef} className="text-5xl md:text-6xl font-bold mb-6 text-balance">
             Gallery
           </h1>
@@ -172,10 +185,10 @@ export default function GalleryPage() {
                   <img
                     src={image.image || "/placeholder.svg"}
                     alt={image.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    className="w-full h-full object-cover opacity-100 group-hover:scale-110 transition-transform duration-300"
                   />
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent/0 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-4">
                   <h3 className="text-white font-bold text-lg">{image.title}</h3>
                   <p className="text-gray-200 text-sm">{image.category}</p>
                 </div>

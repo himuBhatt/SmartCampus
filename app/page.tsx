@@ -20,6 +20,7 @@ export default function Home() {
               y: 30,
               stagger: 0.2,
               ease: "power3.out",
+              immediateRender: false,
             })
           }
         })
@@ -42,8 +43,8 @@ export default function Home() {
       {/* Stats Section */}
       <section ref={statsRef} className="py-20 px-4 bg-card-bg">
         <div className="max-w-7xl mx-auto">
-          <h2 className="text-4xl font-bold text-center mb-12 text-foreground">
-            Our <span className="text-color-primary">Impact</span>
+          <h2 className="text-4xl font-bold text-center mb-12 ">
+            Our <span className="text-black">Impact</span>
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             {[

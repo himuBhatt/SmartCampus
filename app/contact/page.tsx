@@ -8,8 +8,8 @@ import gsap from "gsap"
 import { Mail, Phone, MapPin, Clock, Send } from "lucide-react"
 
 export default function ContactPage() {
-  const titleRef = useRef(null)
-  const formRef = useRef(null)
+  const titleRef = useRef<HTMLHeadingElement | null>(null)
+  const formRef = useRef<HTMLFormElement | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -18,26 +18,37 @@ export default function ContactPage() {
     message: "",
   })
   const [submitted, setSubmitted] = useState(false)
+  const containerRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
-    const tl = gsap.timeline()
+    // Scope GSAP animations to this component and revert on unmount
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline()
+      const formElements = formRef.current
+        ? Array.from(formRef.current.querySelectorAll<HTMLDivElement>(".form-element"))
+        : []
 
-    tl.from(titleRef.current, {
-      duration: 1,
-      opacity: 0,
-      y: 30,
-      ease: "power3.out",
-    }).from(
-      formRef.current?.querySelectorAll(".form-element"),
-      {
-        duration: 0.6,
+      tl.from(titleRef.current, {
+        duration: 1,
         opacity: 0,
-        y: 20,
-        stagger: 0.1,
+        y: 30,
         ease: "power3.out",
-      },
-      "-=0.5",
-    )
+        immediateRender: false,
+      }).from(
+        formElements,
+        {
+          duration: 0.6,
+          opacity: 0,
+          y: 20,
+          stagger: 0.1,
+          ease: "power3.out",
+          immediateRender: false,
+        },
+        "-=0.5",
+      )
+    }, containerRef)
+
+    return () => ctx.revert()
   }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -60,7 +71,7 @@ export default function ContactPage() {
   }
 
   return (
-    <main className="pt-20">
+    <main ref={containerRef} className="pt-20">
       {/* Hero Section */}
       <section className="py-20 px-4 bg-gradient-to-r from-color-primary to-color-primary-light text-white relative">
         <Background3D className="absolute inset-0 w-full h-full opacity-50" />

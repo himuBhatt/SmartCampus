@@ -8,40 +8,47 @@ export default function HeroSection() {
   const titleRef = useRef(null)
   const subtitleRef = useRef(null)
   const buttonRef = useRef(null)
+  const containerRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
-    const tl = gsap.timeline()
+    // Use gsap.context to scope animations to this component
+    // and automatically clean up inline styles when the component unmounts.
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline()
 
-    tl.from(titleRef.current, {
-      duration: 1,
-      opacity: 0,
-      y: 50,
-      ease: "power3.out",
-    })
-      .from(
-        subtitleRef.current,
-        {
-          duration: 1,
-          opacity: 0,
-          y: 30,
-          ease: "power3.out",
-        },
-        "-=0.5",
-      )
-      .from(
-        buttonRef.current,
-        {
-          duration: 1,
-          opacity: 0,
-          scale: 0.8,
-          ease: "back.out",
-        },
-        "-=0.5",
-      )
+      tl.from(titleRef.current, {
+        duration: 1,
+        y: 100,
+        ease: "power3.out",
+        immediateRender: false,
+      })
+        .from(
+          subtitleRef.current,
+          {
+            duration: 1,
+            y: 30,
+            ease: "power3.out",
+            immediateRender: false,
+          },
+          "-=0.5",
+        )
+        .from(
+          buttonRef.current,
+          {
+            duration: 1,
+            scale: 0.8,
+            ease: "back.out",
+            immediateRender: false,
+          },
+          "-=0.5",
+        )
+    }, containerRef)
+
+    return () => ctx.revert()
   }, [])
 
   return (
-    <section className="min-h-screen flex items-center justify-center pt-16 px-4">
+  <section ref={containerRef} className="min-h-screen flex items-center justify-center pt-16 px-4">
       <div className="text-center max-w-4xl mx-auto">
         <h1 ref={titleRef} className="text-5xl text-black md:text-7xl font-bold text-foreground mb-6 text-balance">
           Government Polytechnic <span className="text-color-primary">Srinagar</span>

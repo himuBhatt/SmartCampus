@@ -8,28 +8,36 @@ import { Clock, Users, Award, BookOpen } from "lucide-react"
 export default function CoursesPage() {
   const titleRef = useRef(null)
   const coursesRef = useRef(null)
+  const containerRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
-    const tl = gsap.timeline()
+    // Scope animations to this component and revert on unmount
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline()
 
-    tl.from(titleRef.current, {
-      duration: 1,
-      opacity: 0,
-      y: 30,
-      ease: "power3.out",
-    })
+      tl.from(titleRef.current, {
+        duration: 1,
+        opacity: 0,
+        y: 30,
+        ease: "power3.out",
+        immediateRender: false,
+      })
+    }, containerRef)
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            gsap.from(entry.target.querySelectorAll(".course-card"), {
-              duration: 0.8,
-              opacity: 0,
-              y: 30,
-              stagger: 0.1,
-              ease: "power3.out",
-            })
+            ctx.add(() =>
+              gsap.from(entry.target.querySelectorAll(".course-card"), {
+                duration: 0.8,
+                opacity: 0,
+                y: 30,
+                stagger: 0.1,
+                ease: "power3.out",
+                immediateRender: false,
+              }),
+            )
           }
         })
       },
@@ -40,7 +48,10 @@ export default function CoursesPage() {
       observer.observe(coursesRef.current)
     }
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      ctx.revert()
+    }
   }, [])
 
   const courses = [
@@ -95,7 +106,7 @@ export default function CoursesPage() {
   ]
 
   return (
-    <main className="pt-20">
+    <main ref={containerRef} className="pt-20">
       {/* Hero Section */}
       <section className="py-20 px-4 bg-gradient-to-r from-color-primary to-color-primary-light text-white relative">
         <Background3D />

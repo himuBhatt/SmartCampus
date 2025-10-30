@@ -4,32 +4,42 @@ import gsap from "gsap"
 import Link from "next/link"
 import { MapPin, Users, BookOpen, Zap } from "lucide-react"
 import CampusMap3D from "@/components/campus-map-3d"
+import Background3D from "@/components/3d-background"
 
 export default function CampusPage() {
   const titleRef = useRef(null)
   const facilitiesRef = useRef(null)
+  const containerRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
-    const tl = gsap.timeline()
+    // Scope animations to this component and auto-clean inline styles on unmount
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline()
 
-    tl.from(titleRef.current, {
-      duration: 1,
-      opacity: 0,
-      y: 30,
-      ease: "power3.out",
-    })
+      tl.from(titleRef.current, {
+        duration: 1,
+        opacity: 0,
+        y: 30,
+        ease: "power3.out",
+        immediateRender: false,
+      })
+    }, containerRef)
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            gsap.from(entry.target.querySelectorAll(".facility-card"), {
-              duration: 0.8,
-              opacity: 0,
-              y: 30,
-              stagger: 0.15,
-              ease: "power3.out",
-            })
+            // create tween and register it with gsap.context so it will be reverted on unmount
+            ctx.add(() =>
+              gsap.from(entry.target.querySelectorAll(".facility-card"), {
+                duration: 0.8,
+                opacity: 0,
+                y: 30,
+                stagger: 0.15,
+                ease: "power3.out",
+                immediateRender: false,
+              }),
+            )
           }
         })
       },
@@ -40,18 +50,22 @@ export default function CampusPage() {
       observer.observe(facilitiesRef.current)
     }
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      ctx.revert()
+    }
   }, [])
 
   return (
-    <main className="pt-20">
+    <main ref={containerRef} className="pt-20 opacity-100">
       {/* Hero Section */}
-      <section className="py-20 px-4 bg-gradient-to-r from-color-primary to-color-primary-light text-white">
-        <div className="max-w-7xl mx-auto">
+      <section className="py-20 px-4 bg-gradient-to-r from-color-primary to-color-primary-light text-white relative">
+        <Background3D className="absolute inset-0 w-full h-full opacity-50 pointer-events-none" />
+        <div className="max-w-7xl mx-auto relative z-10">
           <h1 ref={titleRef} className="text-5xl md:text-6xl font-bold mb-6 text-balance">
             Our Campus
           </h1>
-          <p className="text-xl text-black md:text-2xl opacity-90 max-w-3xl">
+          <p className="text-3xl text-black md:text-2xl opacity-90 max-w-3xl">
             State-of-the-art facilities designed for modern technical education
           </p>
         </div>

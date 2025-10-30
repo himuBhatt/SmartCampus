@@ -8,28 +8,36 @@ import { Mail } from "lucide-react"
 export default function FacultyPage() {
   const titleRef = useRef(null)
   const facultyRef = useRef(null)
+  const containerRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
-    const tl = gsap.timeline()
+    // Scope animations to this component and revert on unmount
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline()
 
-    tl.from(titleRef.current, {
-      duration: 1,
-      opacity: 0,
-      y: 30,
-      ease: "power3.out",
-    })
+      tl.from(titleRef.current, {
+        duration: 1,
+        opacity: 0,
+        y: 30,
+        ease: "power3.out",
+        immediateRender: false,
+      })
+    }, containerRef)
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            gsap.from(entry.target.querySelectorAll(".faculty-card"), {
-              duration: 0.8,
-              opacity: 0,
-              y: 30,
-              stagger: 0.1,
-              ease: "power3.out",
-            })
+            ctx.add(() =>
+              gsap.from(entry.target.querySelectorAll(".faculty-card"), {
+                duration: 0.8,
+                opacity: 0,
+                y: 30,
+                stagger: 0.1,
+                ease: "power3.out",
+                immediateRender: false,
+              }),
+            )
           }
         })
       },
@@ -40,7 +48,10 @@ export default function FacultyPage() {
       observer.observe(facultyRef.current)
     }
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      ctx.revert()
+    }
   }, [])
 
   const facultyMembers = [
@@ -95,7 +106,7 @@ export default function FacultyPage() {
   ]
 
   return (
-    <main className="pt-20">
+    <main ref={containerRef} className="pt-20">
       {/* Hero Section */}
       <section className="py-20 px-4 bg-gradient-to-r from-color-primary to-color-primary-light text-white relative">
         <Background3D />

@@ -1,33 +1,42 @@
 "use client"
 import { useEffect, useRef } from "react"
 import gsap from "gsap"
+import Background3D from "@/components/3d-background"
 import { Calendar, MapPin, Clock } from "lucide-react"
 
 export default function EventsPage() {
   const titleRef = useRef(null)
   const eventsRef = useRef(null)
+  const containerRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
-    const tl = gsap.timeline()
+    // Scope animations to this component and revert on unmount
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline()
 
-    tl.from(titleRef.current, {
-      duration: 1,
-      opacity: 0,
-      y: 30,
-      ease: "power3.out",
-    })
+      tl.from(titleRef.current, {
+        duration: 1,
+        opacity: 0,
+        y: 30,
+        ease: "power3.out",
+        immediateRender: false,
+      })
+    }, containerRef)
 
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
-            gsap.from(entry.target.querySelectorAll(".event-card"), {
-              duration: 0.8,
-              opacity: 0,
-              y: 30,
-              stagger: 0.1,
-              ease: "power3.out",
-            })
+            ctx.add(() =>
+              gsap.from(entry.target.querySelectorAll(".event-card"), {
+                duration: 0.8,
+                opacity: 0,
+                y: 30,
+                stagger: 0.1,
+                ease: "power3.out",
+                immediateRender: false,
+              }),
+            )
           }
         })
       },
@@ -38,7 +47,10 @@ export default function EventsPage() {
       observer.observe(eventsRef.current)
     }
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      ctx.revert()
+    }
   }, [])
 
   const upcomingEvents = [
@@ -129,10 +141,11 @@ export default function EventsPage() {
   ]
 
   return (
-    <main className="pt-20">
+    <main ref={containerRef} className="pt-20 opacity-100">
       {/* Hero Section */}
-      <section className="py-20 px-4 bg-gradient-to-r from-color-primary to-color-primary-light text-white">
-        <div className="max-w-7xl mx-auto">
+      <section className="py-20 px-4 bg-gradient-to-r from-color-primary to-color-primary-light text-white relative">
+        <Background3D className="absolute inset-0 w-full h-full opacity-50 pointer-events-none" />
+        <div className="max-w-7xl mx-auto relative z-10">
           <h1 ref={titleRef} className="text-5xl md:text-6xl font-bold mb-6 text-black">
             Events & Activities
           </h1>
