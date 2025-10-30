@@ -17,6 +17,7 @@ export default function Navigation() {
     { label: "Courses", href: "/courses" },
     { label: "Gallery", href: "/gallery" },
     { label: "Events", href: "/events" },
+    { label: "Notice Board", href: "/notice-board" },
     { label: "Contact", href: "/contact" },
   ]
 
