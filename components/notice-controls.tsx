@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Plus, Trash2, Edit2 } from "lucide-react"
-import { addDoc, collection } from "firebase/firestore"
+import { addDoc, collection, getDocs } from "firebase/firestore"
 import { db } from "@/lib/firebase"
 
 interface AddNoticeFormProps {
@@ -18,8 +18,21 @@ function AddNoticeForm({ onClose, onSubmit }: AddNoticeFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const x = Math.random() * 300 + 50
-      const y = Math.random() * 150 + 50
+      // Get count of existing notices for grid positioning
+      const noticesRef = collection(db, "notices")
+      const snapshot = await getDocs(noticesRef)
+      const count = snapshot.size
+      
+      // Calculate grid position with increased spacing
+      const MARGIN = 60          // Margin from edges
+      const COL_SPACING = 250    // Horizontal spacing between notices (increased from 200)
+      const ROW_SPACING = 180    // Vertical spacing between notices (increased from 150)
+      const NOTICES_PER_ROW = 2  // Reduced from 3 to give more space
+      
+      const col = count % NOTICES_PER_ROW
+      const row = Math.floor(count / NOTICES_PER_ROW)
+      const x = MARGIN + col * COL_SPACING
+      const y = MARGIN + row * ROW_SPACING
 
       await addDoc(collection(db, "notices"), {
         title,
